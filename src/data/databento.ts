@@ -7,6 +7,7 @@ import { CONFIG } from '../config/constants';
 import { deltaFromSide } from '../utils/calculations';
 import { getMinuteTimestamp } from '../utils/formatting';
 
+// ThIS COMMIT IS 1 MIN VERSION.
 export async function* streamTradesPaged(
   apiKey: string,
   startUtc: string,
