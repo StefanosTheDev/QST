@@ -1,10 +1,22 @@
-// strategy/signals.ts
+// src/strategy/signals.ts
 import { Bar, TrendlineResult } from '../types';
+import { computeADX } from '../indicators/adx';
+import { CONFIG } from '../config/constants';
 
 export interface SignalFilters {
   lastSignal: 'bullish' | 'bearish' | null;
-  priceWindow: number[];
+
+  // short windows for entry logic
+  priceWindow: number[]; // closes
+  highWindow: number[]; // highs
+  lowWindow: number[]; // lows
   volumeWindow: number[];
+
+  // long windows for ADX calculation
+  adxHighs: number[];
+  adxLows: number[];
+  adxCloses: number[];
+
   bar: Bar;
   prevBar: Bar | null;
   ema21: number;
@@ -20,8 +32,17 @@ export class SignalGenerator {
     if (signal === 'none') return 'none';
 
     const { supSlope, resSlope } = trendlines;
-    const { lastSignal, priceWindow, volumeWindow, bar, prevBar, prevEma21 } =
-      filters;
+    const {
+      lastSignal,
+      priceWindow,
+      volumeWindow,
+      adxHighs,
+      adxLows,
+      adxCloses,
+      bar,
+      prevBar,
+      prevEma21,
+    } = filters;
 
     // 1. Reversal filter
     if (signal === lastSignal) {
@@ -70,7 +91,8 @@ export class SignalGenerator {
         console.log('    → filtered by EMA21 bullish filter');
         return 'none';
       }
-    } else if (signal === 'bearish') {
+    } else {
+      // bearish
       if (
         !prevBar ||
         !prevEma21 ||
@@ -82,6 +104,33 @@ export class SignalGenerator {
       }
     }
 
+    // 6. ADX filter (last gate)
+    console.log(
+      `    → checking ADX with ${adxCloses.length} bars (need ≥ ${
+        2 * CONFIG.ADX_PERIOD - 1
+      })`
+    );
+    const adxValue = computeADX(
+      adxHighs,
+      adxLows,
+      adxCloses,
+      CONFIG.ADX_PERIOD
+    );
+    if (adxValue === null) {
+      console.log('    → filtered: insufficient data for ADX');
+      return 'none';
+    }
+    if (adxValue <= CONFIG.ADX_PERIOD) {
+      console.log(
+        `    → filtered by ADX: ${adxValue.toFixed(2)} ≤ ${CONFIG.ADX_PERIOD}`
+      );
+      return 'none';
+    }
+    console.log(
+      `    → ADX passed: ${adxValue.toFixed(2)} > ${CONFIG.ADX_PERIOD}`
+    );
+
+    // All checks passed
     return signal;
   }
 }

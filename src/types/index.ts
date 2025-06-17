@@ -1,8 +1,8 @@
-// types/index.ts
+// src/types/index.ts
 export interface Trade {
   px: number;
   size: number;
-  side: 'A' | 'B' | 'N'; // Ask-hit, Bid-hit, or Neutral
+  side: 'A' | 'B' | 'N';
   ts_ms: number;
 }
 
@@ -40,7 +40,16 @@ export interface TradingState {
   position: Position | null;
   lastEma21: number | null;
   prevBar: Bar | null;
+
+  // Short windows for your entry logic
   cvdWindow: number[];
   priceWindow: number[];
+  highWindow: number[];
+  lowWindow: number[];
   volumeWindow: number[];
+
+  // Long windows just for ADX calculation
+  adxHighs: number[];
+  adxLows: number[];
+  adxCloses: number[];
 }

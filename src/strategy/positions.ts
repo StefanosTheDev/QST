@@ -1,6 +1,5 @@
-// strategy/positions.ts
+// src/strategy/positions.ts
 import { Bar, Position } from '../types';
-import { CONFIG } from '../config/constants';
 import { formatEasternTime } from '../utils/formatting';
 
 export class PositionManager {
@@ -20,7 +19,7 @@ export class PositionManager {
     const time = formatEasternTime(bar.timestamp);
 
     if (this.position.type === 'bullish') {
-      // Check stop loss
+      // stop-loss
       if (bar.low <= this.position.stopPrice) {
         console.log(
           `  → 🚫 STOP-LOSS LONG @ ${time} | stop was ${this.position.stopPrice.toFixed(
@@ -30,7 +29,7 @@ export class PositionManager {
         this.position = null;
         return { exited: true, reason: 'stop-loss' };
       }
-      // Check take profit
+      // take-profit
       if (bar.high >= this.position.targetPrice) {
         console.log(
           `  → 🎯 TAKE-PROFIT LONG @ ${time} | target was ${this.position.targetPrice.toFixed(
@@ -40,8 +39,8 @@ export class PositionManager {
         this.position = null;
         return { exited: true, reason: 'take-profit' };
       }
-    } else if (this.position.type === 'bearish') {
-      // Check stop loss
+    } else {
+      // stop-loss short
       if (bar.high >= this.position.stopPrice) {
         console.log(
           `  → 🚫 STOP-LOSS SHORT @ ${time} | stop was ${this.position.stopPrice.toFixed(
@@ -51,7 +50,7 @@ export class PositionManager {
         this.position = null;
         return { exited: true, reason: 'stop-loss' };
       }
-      // Check take profit
+      // take-profit short
       if (bar.low <= this.position.targetPrice) {
         console.log(
           `  → 🎯 TAKE-PROFIT SHORT @ ${time} | target was ${this.position.targetPrice.toFixed(
@@ -66,32 +65,17 @@ export class PositionManager {
     return { exited: false };
   }
 
-  enterPosition(
-    signal: 'bullish' | 'bearish',
-    bar: Bar,
-    priceWindow: number[]
-  ): Position {
+  enterPosition(signal: 'bullish' | 'bearish', bar: Bar): Position {
     const entry = bar.close;
-    let stopPrice: number;
-    let targetPrice: number;
+    // fixed 3-point stop & target
+    const stopPrice = signal === 'bullish' ? entry - 3 : entry + 3;
+    const targetPrice = signal === 'bullish' ? entry + 3 : entry - 3;
 
-    if (signal === 'bullish') {
-      stopPrice = Math.min(...priceWindow);
-      const R = entry - stopPrice;
-      targetPrice = entry + R * CONFIG.R_MULTIPLE;
-
-      console.log(`    → ENTRY SIGNAL: BULLISH`);
-      console.log(`       Stop price:   ${stopPrice.toFixed(2)}`);
-      console.log(`       Target price: ${targetPrice.toFixed(2)}\n`);
-    } else {
-      stopPrice = Math.max(...priceWindow);
-      const R = stopPrice - entry;
-      targetPrice = entry - R * CONFIG.R_MULTIPLE;
-
-      console.log(`    → ENTRY SIGNAL: BEARISH`);
-      console.log(`       Stop price:   ${stopPrice.toFixed(2)}`);
-      console.log(`       Target price: ${targetPrice.toFixed(2)}\n`);
-    }
+    console.log(
+      `    → ENTRY SIGNAL: ${signal.toUpperCase()} @ ${entry.toFixed(2)}`
+    );
+    console.log(`       Stop price:   ${stopPrice.toFixed(2)}`);
+    console.log(`       Target price: ${targetPrice.toFixed(2)}\n`);
 
     this.position = {
       type: signal,

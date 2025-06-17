@@ -7,7 +7,6 @@ import { CONFIG } from '../config/constants';
 import { deltaFromSide } from '../utils/calculations';
 import { getMinuteTimestamp } from '../utils/formatting';
 
-// ThIS COMMIT IS 1 MIN VERSION.
 export async function* streamTradesPaged(
   apiKey: string,
   startUtc: string,
@@ -52,7 +51,7 @@ export async function* streamTradesPaged(
   }
 }
 
-export async function* streamOneMinuteBars(
+export async function* streamBars(
   apiKey: string,
   startUtc: string,
   endUtc: string,
@@ -66,14 +65,33 @@ export async function* streamOneMinuteBars(
   let runningCvd = 0;
   let prevHigh: number | null = null;
   let prevLow: number | null = null;
+  let tickCount = 0;
 
   for await (const trade of streamTradesPaged(apiKey, startUtc, endUtc)) {
     const { px, size, side, ts_ms } = trade;
-    const iso = getMinuteTimestamp(ts_ms);
     const delta = deltaFromSide(side, size);
     runningCvd += delta;
 
-    if (!current || current.timestamp !== iso) {
+    // Determine bar boundary based on config
+    let newBar = false;
+    let barId: string;
+
+    if (CONFIG.BAR_TYPE === 'time') {
+      // Time-based bars (1-minute)
+      barId = getMinuteTimestamp(ts_ms);
+      newBar = !current || current.timestamp !== barId;
+    } else {
+      // Tick-based bars
+      if (!current || tickCount >= CONFIG.TICK_SIZE) {
+        newBar = true;
+        tickCount = 0;
+        barId = new Date(ts_ms).toISOString(); // Use exact timestamp for tick bars
+      } else {
+        barId = current.timestamp;
+      }
+    }
+
+    if (newBar) {
       if (current) {
         current.cvd = current.cvd_running;
         current.cvd_color = getCvdColor(current, prevHigh, prevLow);
@@ -83,7 +101,7 @@ export async function* streamOneMinuteBars(
       }
 
       current = {
-        timestamp: iso,
+        timestamp: barId,
         open: px,
         high: px,
         low: px,
@@ -92,13 +110,15 @@ export async function* streamOneMinuteBars(
         delta,
         cvd_running: runningCvd,
       };
+      tickCount = 1;
     } else {
-      current.high = Math.max(current.high, px);
-      current.low = Math.min(current.low, px);
-      current.close = px;
-      current.volume += size;
-      current.delta += delta;
-      current.cvd_running = runningCvd;
+      current!.high = Math.max(current!.high, px);
+      current!.low = Math.min(current!.low, px);
+      current!.close = px;
+      current!.volume += size;
+      current!.delta += delta;
+      current!.cvd_running = runningCvd;
+      tickCount++;
     }
   }
 
