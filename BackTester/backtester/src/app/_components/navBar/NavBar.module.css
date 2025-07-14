@@ -1,0 +1,55 @@
+/* src/app/_components/NavBar/NavBar.module.css */
+
+.navContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: rgb(17 24 39);
+  border-bottom: 1px solid rgb(31 41 55);
+  color: white;
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon {
+  width: 2rem;
+  height: 2rem;
+  color: rgb(59 130 246);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+  color: white;
+}
+
+.navControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* space between links group and button */
+}
+
+.navLinks {
+  display: flex;
+  gap: 2rem;
+}
+
+.navLink {
+  color: rgb(156 163 175);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.navLink:hover {
+  color: rgb(59 130 246);
+  background-color: rgb(31 41 55);
+}

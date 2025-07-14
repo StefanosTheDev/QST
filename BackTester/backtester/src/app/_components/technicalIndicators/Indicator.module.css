@@ -1,0 +1,84 @@
+.section {
+  width: 100%; /* fill its grid cell */
+  box-sizing: border-box;
+  background-color: rgb(17 24 39);
+  border-radius: 0.75rem;
+  padding: 2rem;
+}
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem; /* same as Risk */
+  background-color: rgb(17 24 39); /* same bg */
+  border-bottom: 1px solid rgb(31 41 55);
+  margin: 0; /* remove any extra margin */
+}
+
+/* icon and title identical to Risk */
+.sectionIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: rgb(59 130 246);
+}
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+/* new toggle button in the header */
+.sectionToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.toggleActive {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: rgb(34 197 94);
+}
+.toggleInactive {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: rgb(107 114 128);
+}
+.inputGroup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.subField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.subLabel {
+  font-size: 0.8rem;
+  color: rgb(156 163 175);
+  font-weight: 500;
+}
+
+.input {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: rgb(55 65 81);
+  border: 1px solid rgb(75 85 99);
+  color: white;
+  font-size: 0.875rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgb(59 130 246);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input:disabled {
+  background-color: rgb(31 41 55);
+  color: rgb(107 114 128);
+  cursor: not-allowed;
+}
