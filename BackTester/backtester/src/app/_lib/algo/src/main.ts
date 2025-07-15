@@ -13,18 +13,14 @@ import { SignalGenerator } from './strategy/signals';
 import { PositionManager } from './strategy/positions';
 import { formatEasternTime } from './utils/formatting';
 import { TradingState, Bar } from './types';
-import { HeikinAshiCalculator } from './indicators/heikinAshi';
 
 class TradingSystem {
   private state: TradingState;
   private emaCalculator = new EMACalculator();
   private signalGenerator = new SignalGenerator();
   private positionManager = new PositionManager();
-  private haCalc: HeikinAshiCalculator | null = CONFIG.USE_HEIKIN_ASHI
-    ? new HeikinAshiCalculator()
-    : null;
-  private timeoutId: NodeJS.Timeout | null = null;
   private lastBarTime: number = 0;
+  private timeoutId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.state = {
@@ -44,12 +40,11 @@ class TradingSystem {
   }
 
   private updateWindows(bar: Bar): void {
-    this.state.cvdWindow.push(bar.cvd_running);
+    this.state.cvdWindow.push(bar.cvd!);
     this.state.priceWindow.push(bar.close);
     this.state.highWindow.push(bar.high);
     this.state.lowWindow.push(bar.low);
     this.state.volumeWindow.push(bar.volume);
-
     if (this.state.cvdWindow.length > CONFIG.WINDOW_SIZE) {
       this.state.cvdWindow.shift();
       this.state.priceWindow.shift();
@@ -57,7 +52,6 @@ class TradingSystem {
       this.state.lowWindow.shift();
       this.state.volumeWindow.shift();
     }
-
     this.state.adxHighs.push(bar.high);
     this.state.adxLows.push(bar.low);
     this.state.adxCloses.push(bar.close);
@@ -69,7 +63,9 @@ class TradingSystem {
   }
 
   private resetTimeout(): void {
-    if (this.timeoutId) clearTimeout(this.timeoutId);
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+    }
     this.timeoutId = setTimeout(() => {
       console.log('\n⚠️ No bars processed for 10 seconds, terminating...');
       this.printStatistics();
@@ -77,19 +73,16 @@ class TradingSystem {
     }, 10000);
   }
 
-  private async processBar(rawBar: Bar, idx: number): Promise<void> {
+  private async processBar(bar: Bar, idx: number): Promise<void> {
+    this.lastBarTime = Number(bar.timestamp);
     this.resetTimeout();
-    this.lastBarTime = Number(rawBar.timestamp);
-
-    const bar: Bar = this.haCalc ? this.haCalc.next(rawBar) : rawBar;
 
     const ema21 = this.emaCalculator.calculate(bar.close);
     const time = formatEasternTime(bar.timestamp);
 
     console.log(
-      `#${idx} ${time} | O:${bar.open} H:${bar.high}` +
-        ` L:${bar.low} C:${bar.close} Vol:${bar.volume}` +
-        ` EMA21:${ema21.toFixed(2)}`
+      `#${idx} ${time} | O:${bar.open} H:${bar.high} L:${bar.low}` +
+        ` C:${bar.close} Vol:${bar.volume} EMA21:${ema21.toFixed(2)}`
     );
 
     const { exited, reason } = this.positionManager.checkExit(bar);
@@ -139,9 +132,6 @@ class TradingSystem {
     this.state.lastEma21 = ema21;
   }
 
-  /**
-   * Print current P&L and stats
-   */
   private printStatistics(): void {
     console.log(this.positionManager.getStatistics().getStatistics());
   }
@@ -155,9 +145,7 @@ class TradingSystem {
     - EMA Period: ${CONFIG.EMA_PERIOD}
     - ADX Threshold: ${CONFIG.ADX_THRESHOLD}
     - Stop Loss: ${CONFIG.STOP_LOSS} points
-    - Take Profit: ${CONFIG.TAKE_PROFIT} points
-    - Heikin-Ashi Candles: ${CONFIG.USE_HEIKIN_ASHI}
-`);
+    - Take Profit: ${CONFIG.TAKE_PROFIT} points\n`);
 
     let idx = 0;
     try {
@@ -166,7 +154,9 @@ class TradingSystem {
         await this.processBar(bar, idx);
       }
     } finally {
-      if (this.timeoutId) clearTimeout(this.timeoutId);
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId);
+      }
       this.printStatistics();
       console.log('\n✅ Done');
     }

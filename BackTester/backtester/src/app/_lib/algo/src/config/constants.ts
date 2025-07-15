@@ -6,7 +6,6 @@ import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Interface for form data
-
 export interface FormConfig {
   timeFrame: {
     startDate: string;
@@ -20,7 +19,6 @@ export interface FormConfig {
       emaMovingAverage: boolean;
       tickType: boolean;
       barType: boolean;
-      heikinAshi: boolean;
       cvdLookBackBars: boolean;
       adxThreshold: boolean;
     };
@@ -31,9 +29,15 @@ export interface FormConfig {
     adxThreshold?: number;
   };
   riskManagement?: {
+    enabled: {
+      stopLoss: boolean;
+      takeProfit: boolean;
+      rMultiple: boolean;
+    };
     stopLoss?: number;
     takeProfit?: number;
     rMultiple?: number;
+    // 💡 Additional fields used in your algo
     contractSize?: number;
     maxDailyLoss?: number;
     maxPositions?: number;
@@ -41,30 +45,10 @@ export interface FormConfig {
   };
 }
 
-// Internal defaults
-interface InternalConfig {
-  PAGE_MS: number;
-  BAR_TYPE: 'time' | 'tick';
-  TICK_SIZE: number;
-  WINDOW_SIZE: number;
-  TOL_PCT: number;
-  R_MULTIPLE: number;
-  EMA_PERIOD: number;
-  ADX_PERIOD: number;
-  ADX_THRESHOLD: number;
-  STOP_LOSS: number;
-  TAKE_PROFIT: number;
-  CONTRACT_SIZE: number;
-  MAX_DAILY_LOSS: number;
-  MAX_POSITIONS: number;
-  LEVERAGE: number;
-  USE_HEIKIN_ASHI: boolean;
-}
-
-// Engine defaults
-const DEFAULTS: InternalConfig = {
-  PAGE_MS: 300_000,
-  BAR_TYPE: 'tick',
+// Default values
+const DEFAULTS = {
+  PAGE_MS: 5 * 60 * 1000,
+  BAR_TYPE: 'tick' as 'time' | 'tick',
   TICK_SIZE: 700,
   WINDOW_SIZE: 5,
   TOL_PCT: 0.001,
@@ -74,72 +58,90 @@ const DEFAULTS: InternalConfig = {
   ADX_THRESHOLD: 14,
   STOP_LOSS: 4,
   TAKE_PROFIT: 3,
+
+  // ✅ Add these!
   CONTRACT_SIZE: 1,
   MAX_DAILY_LOSS: 500,
   MAX_POSITIONS: 3,
   LEVERAGE: 1,
-  USE_HEIKIN_ASHI: false,
 };
 
-let dynamicConfig: InternalConfig = { ...DEFAULTS };
+// Dynamic config that can be updated
+let dynamicConfig = { ...DEFAULTS };
 
-// Update internal config from the form
+// Function to update config from form data
 export function updateConfig(formData: FormConfig) {
   const { indicators, riskManagement } = formData;
 
-  // Indicators
-  if (indicators.enabled.barType && indicators.barType != null) {
+  // Update bar type (0 = time, 1 = tick)
+  if (indicators.enabled.barType && indicators.barType !== undefined) {
     dynamicConfig.BAR_TYPE = indicators.barType === 0 ? 'time' : 'tick';
   }
-  if (indicators.enabled.tickType && indicators.tickType != null) {
+
+  // Update tick size
+  if (indicators.enabled.tickType && indicators.tickType !== undefined) {
     dynamicConfig.TICK_SIZE = indicators.tickType;
   }
+
+  // Update CVD window size
   if (
     indicators.enabled.cvdLookBackBars &&
-    indicators.cvdLookBackBars != null
+    indicators.cvdLookBackBars !== undefined
   ) {
     dynamicConfig.WINDOW_SIZE = indicators.cvdLookBackBars;
   }
+
+  // Update EMA period
   if (
     indicators.enabled.emaMovingAverage &&
-    indicators.emaMovingAverage != null
+    indicators.emaMovingAverage !== undefined
   ) {
     dynamicConfig.EMA_PERIOD = indicators.emaMovingAverage;
   }
-  if (indicators.enabled.adxThreshold && indicators.adxThreshold != null) {
+
+  // Update ADX threshold
+  if (
+    indicators.enabled.adxThreshold &&
+    indicators.adxThreshold !== undefined
+  ) {
     dynamicConfig.ADX_THRESHOLD = indicators.adxThreshold;
   }
 
-  // Heikin-Ashi toggle
-  dynamicConfig.USE_HEIKIN_ASHI = !!indicators.enabled.heikinAshi;
-
-  // Risk management: apply provided values directly
   if (riskManagement) {
-    if (riskManagement.stopLoss != null) {
+    const enabled = riskManagement.enabled ?? {};
+
+    if (enabled.stopLoss && riskManagement.stopLoss != null) {
       dynamicConfig.STOP_LOSS = riskManagement.stopLoss;
     }
-    if (riskManagement.takeProfit != null) {
+
+    if (enabled.takeProfit && riskManagement.takeProfit != null) {
       dynamicConfig.TAKE_PROFIT = riskManagement.takeProfit;
     }
-    if (riskManagement.rMultiple != null) {
+
+    if (enabled.rMultiple && riskManagement.rMultiple != null) {
       dynamicConfig.R_MULTIPLE = riskManagement.rMultiple;
     }
+
+    // ✅ No .enabled flags for these — apply unconditionally if defined
     if (riskManagement.contractSize != null) {
       dynamicConfig.CONTRACT_SIZE = riskManagement.contractSize;
     }
+
     if (riskManagement.maxDailyLoss != null) {
       dynamicConfig.MAX_DAILY_LOSS = riskManagement.maxDailyLoss;
     }
+
     if (riskManagement.maxPositions != null) {
       dynamicConfig.MAX_POSITIONS = riskManagement.maxPositions;
     }
+
     if (riskManagement.leverage != null) {
       dynamicConfig.LEVERAGE = riskManagement.leverage;
     }
   }
 }
 
-// Build ISO strings for your date range queries
+// Function to build date strings from form data
 export function buildDateStrings(timeFrame: FormConfig['timeFrame']) {
   return {
     start: `${timeFrame.startDate}T${timeFrame.startTime}:00-04:00`,
@@ -147,17 +149,21 @@ export function buildDateStrings(timeFrame: FormConfig['timeFrame']) {
   };
 }
 
-// Expose getters for runtime use in the algo
 export const CONFIG = {
+  // Timing config
   get PAGE_MS() {
     return dynamicConfig.PAGE_MS;
   },
+
+  // Aggregation
   get BAR_TYPE() {
     return dynamicConfig.BAR_TYPE;
   },
   get TICK_SIZE() {
     return dynamicConfig.TICK_SIZE;
   },
+
+  // Trading logic
   get WINDOW_SIZE() {
     return dynamicConfig.WINDOW_SIZE;
   },
@@ -170,6 +176,8 @@ export const CONFIG = {
   get EMA_PERIOD() {
     return dynamicConfig.EMA_PERIOD;
   },
+
+  // ADX
   get ADX_PERIOD() {
     return dynamicConfig.ADX_PERIOD;
   },
@@ -179,12 +187,16 @@ export const CONFIG = {
   get ADX_HISTORY_BARS() {
     return 3 * dynamicConfig.ADX_PERIOD;
   },
+
+  // Risk
   get STOP_LOSS() {
     return dynamicConfig.STOP_LOSS;
   },
   get TAKE_PROFIT() {
     return dynamicConfig.TAKE_PROFIT;
   },
+
+  // ✅ NEW: Risk extras
   get CONTRACT_SIZE() {
     return dynamicConfig.CONTRACT_SIZE;
   },
@@ -197,10 +209,8 @@ export const CONFIG = {
   get LEVERAGE() {
     return dynamicConfig.LEVERAGE;
   },
-  get USE_HEIKIN_ASHI() {
-    return dynamicConfig.USE_HEIKIN_ASHI;
-  },
 
+  // External config
   DATABENTO: {
     DATASET: 'GLBX.MDP3',
     SCHEMA: 'trades',
@@ -214,16 +224,16 @@ export const CONFIG = {
     MAX_NO_IMPROVE_MULTIPLIER: 5,
   },
 } as const;
-
-// API key helper
 export const getApiKey = (): string => {
   const key =
-    process.env.DATABENTO_API_KEY || 'db-VX9PydDidRfBsgaE5RFQmSDEybyJ8';
-  if (!key) throw new Error('❌ Please set DATABENTO_API_KEY in your .env');
+    process.env.DATABENTO_API_KEY || 'db-93GiS5kT7eLaTA7uWmfJ8rjLBrNFT';
+  if (!key) {
+    throw new Error('❌ Please set DATABENTO_API_KEY in your .env file');
+  }
   return key;
 };
 
-// Reset back to defaults
+// Reset config to defaults
 export function resetConfig() {
   dynamicConfig = { ...DEFAULTS };
 }

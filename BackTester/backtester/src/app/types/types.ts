@@ -13,7 +13,6 @@ export interface TimeFrameProps {
   onChange: (newSettings: Partial<DateTimeSettings>) => void;
 }
 export interface TechnicalIndicatorSettings {
-  heikinAshi: boolean;
   emaMovingAverage: number;
   tickType: number;
   barType: number;
@@ -25,7 +24,6 @@ export interface TechnicalIndicatorSettings {
     barType: boolean;
     cvdLookBackBars: boolean;
     adxThreshold: boolean;
-    heikinAshi: boolean;
   };
 }
 
