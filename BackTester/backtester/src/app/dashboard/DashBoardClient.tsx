@@ -39,12 +39,14 @@ export default function DashboardClient() {
         barType: false,
         cvdLookBackBars: false,
         adxThreshold: false,
+        heikinAshi: false,
       },
       emaMovingAverage: 12,
       tickType: 1000,
       barType: 1,
       cvdLookBackBars: 20,
       adxThreshold: 25,
+      heikinAshi: false, // ← mirror default
     });
 
   // 3) Risk state

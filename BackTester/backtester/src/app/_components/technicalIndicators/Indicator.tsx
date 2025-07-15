@@ -14,9 +14,9 @@ export default function TechnicalIndicators({
   parameters,
   setParameters,
 }: TechnicalIndicatorsProps) {
-  // update number fields
+  // update number fields (excludes 'enabled' and 'heikinAshi')
   const handleParameterChange = (
-    key: keyof Omit<TechnicalIndicatorSettings, 'enabled'>,
+    key: keyof Omit<TechnicalIndicatorSettings, 'enabled' | 'heikinAshi'>,
     value: string
   ) => {
     const num = parseInt(value, 10) || 0;
@@ -25,10 +25,17 @@ export default function TechnicalIndicators({
 
   // flip toggles
   const handleToggle = (key: ToggleKey) => {
-    setParameters((prev) => ({
-      ...prev,
-      enabled: { ...prev.enabled, [key]: !prev.enabled[key] },
-    }));
+    setParameters((prev) => {
+      // flip the enabled flag
+      const enabled = { ...prev.enabled, [key]: !prev.enabled[key] };
+      // prepare updates
+      const updates: Partial<TechnicalIndicatorSettings> = { enabled };
+      // if heikinAshi, mirror into root flag as well
+      if (key === 'heikinAshi') {
+        updates.heikinAshi = !prev.heikinAshi;
+      }
+      return { ...prev, ...updates };
+    });
   };
 
   return (
@@ -43,13 +50,14 @@ export default function TechnicalIndicators({
           [
             ['emaMovingAverage', 'EMA (Moving Avg)'],
             ['tickType', 'Tick Type'],
-
-            ['cvdLookBackBars', 'CVD LookBack Bars'],
+            ['barType', 'Bar Type'],
+            ['cvdLookBackBars', 'CVD Lookback Bars'],
             ['adxThreshold', 'ADX Threshold'],
+            ['heikinAshi', 'Heikin–Ashi Candles'],
           ] as const
         ).map(([key, label]) => {
           const enabled = parameters.enabled[key];
-          const value = parameters[key];
+          const value = parameters[key as keyof TechnicalIndicatorSettings];
           return (
             <div
               key={key}
@@ -58,7 +66,7 @@ export default function TechnicalIndicators({
               <div className={styles.fieldHeader}>
                 <label className={styles.label}>{label}</label>
                 <button
-                  onClick={() => handleToggle(key)}
+                  onClick={() => handleToggle(key as ToggleKey)}
                   className={styles.toggle}
                 >
                   {enabled ? (
@@ -68,20 +76,30 @@ export default function TechnicalIndicators({
                   )}
                 </button>
               </div>
-              <div className={styles.inputGroup}>
-                <div className={styles.subField}>
-                  <label className={styles.subLabel}>Value</label>
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={(e) =>
-                      handleParameterChange(key, e.currentTarget.value)
-                    }
-                    className={styles.input}
-                    disabled={!enabled}
-                  />
+
+              {/* only show numeric input for non-boolean indicators */}
+              {key !== 'heikinAshi' && (
+                <div className={styles.inputGroup}>
+                  <div className={styles.subField}>
+                    <label className={styles.subLabel}>Value</label>
+                    <input
+                      type="number"
+                      value={value as number}
+                      onChange={(e) =>
+                        handleParameterChange(
+                          key as keyof Omit<
+                            TechnicalIndicatorSettings,
+                            'enabled' | 'heikinAshi'
+                          >,
+                          e.currentTarget.value
+                        )
+                      }
+                      className={styles.input}
+                      disabled={!enabled}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
