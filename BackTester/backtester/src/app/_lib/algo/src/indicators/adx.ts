@@ -7,6 +7,12 @@ export function computeADX(
   lows: number[],
   closes: number[]
 ): number | null {
+  // Check if ADX_PERIOD is valid (>0)
+  if (CONFIG.ADX_PERIOD <= 0) {
+    console.log('ADX skipped: Invalid or unset ADX_PERIOD');
+    return null;
+  }
+
   const outputs = TI_ADX.calculate({
     high: highs,
     low: lows,

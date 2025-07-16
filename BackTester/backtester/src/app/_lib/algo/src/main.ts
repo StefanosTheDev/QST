@@ -55,11 +55,11 @@ class TradingSystem {
     this.state.adxHighs.push(bar.high);
     this.state.adxLows.push(bar.low);
     this.state.adxCloses.push(bar.close);
-    if (this.state.adxCloses.length > CONFIG.ADX_HISTORY_BARS) {
-      this.state.adxHighs.shift();
-      this.state.adxLows.shift();
-      this.state.adxCloses.shift();
-    }
+    // if (this.state.adxCloses.length > CONFIG.ADX_HISTORY_BARS) {
+    //   this.state.adxHighs.shift();
+    //   this.state.adxLows.shift();
+    //   this.state.adxCloses.shift();
+    // }
   }
 
   private resetTimeout(): void {
@@ -82,7 +82,7 @@ class TradingSystem {
 
     console.log(
       `#${idx} ${time} | O:${bar.open} H:${bar.high} L:${bar.low}` +
-        ` C:${bar.close} Vol:${bar.volume} EMA21:${ema21.toFixed(2)}`
+        ` C:${bar.close} Vol:${bar.volume} EMA21:${ema21?.toFixed(2) ?? 'N/A'}`
     );
 
     const { exited, reason } = this.positionManager.checkExit(bar);
@@ -118,7 +118,7 @@ class TradingSystem {
         adxCloses: this.state.adxCloses,
         bar,
         prevBar: this.state.prevBar,
-        ema21,
+        ema21: ema21 ?? 0, // Provide fallback value (e.g., 0) if null
         prevEma21: this.state.lastEma21,
       }
     );
@@ -140,7 +140,8 @@ class TradingSystem {
     const apiKey = getApiKey();
     console.log(`📊 Streaming… from ${start} to ${end}`);
     console.log(`📈 Configuration:
-    - Tick Size: ${CONFIG.TICK_SIZE}
+    - BAR TYPE: ${CONFIG.BAR_TYPE}
+    - BAR SIZE: ${CONFIG.TICK_SIZE}
     - Window Size: ${CONFIG.WINDOW_SIZE}
     - EMA Period: ${CONFIG.EMA_PERIOD}
     - ADX Threshold: ${CONFIG.ADX_THRESHOLD}
@@ -163,8 +164,9 @@ class TradingSystem {
   }
 }
 
+// Step 1: Make sure FormData gets passed right.
 export async function runBacktest(formData: FormConfig): Promise<void> {
-  updateConfig(formData);
+  updateConfig(formData); // push the full config somewhere
   const { start, end } = buildDateStrings(formData.timeFrame);
   const ts = new TradingSystem();
   await ts.run(start, end);

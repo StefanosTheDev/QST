@@ -79,48 +79,57 @@ export class SignalGenerator {
       console.log('    → filtered: volume below recent average');
       return 'none';
     }
-
-    // 5. EMA filter
-    if (signal === 'bullish') {
-      if (
-        !prevBar ||
-        !prevEma21 ||
-        prevBar.low < prevEma21 ||
-        bar.close <= prevBar.close
-      ) {
-        console.log('    → filtered by EMA21 bullish filter');
-        return 'none';
+    // 5. EMA filter (optional)
+    if (CONFIG.EMA_PERIOD > 0) {
+      if (signal === 'bullish') {
+        if (
+          !prevBar ||
+          prevEma21 === null || // Changed: Handle null explicitly
+          prevBar.low < prevEma21 ||
+          bar.close <= prevBar.close
+        ) {
+          console.log('    → filtered by EMA bullish filter');
+          return 'none';
+        }
+      } else {
+        // bearish
+        if (
+          !prevBar ||
+          prevEma21 === null || // Changed: Handle null explicitly
+          prevBar.high > prevEma21 ||
+          bar.close >= prevBar.close
+        ) {
+          console.log('    → filtered by EMA bearish filter');
+          return 'none';
+        }
       }
     } else {
-      // bearish
-      if (
-        !prevBar ||
-        !prevEma21 ||
-        prevBar.high > prevEma21 ||
-        bar.close >= prevBar.close
-      ) {
-        console.log('    → filtered by EMA21 bearish filter');
-        return 'none';
-      }
+      console.log('    → EMA filter skipped (period not set or invalid)');
     }
 
-    // 6. ADX filter (cleaned up)
-    const adxValue = computeADX(adxHighs, adxLows, adxCloses);
-    if (adxValue === null) {
-      console.log('    → filtered: ADX not ready');
-      return 'none';
-    }
-    if (adxValue < CONFIG.ADX_THRESHOLD) {
+    // 6. ADX filter (optional)
+    if (CONFIG.ADX_PERIOD > 0 && CONFIG.ADX_THRESHOLD > 0) {
+      const adxValue = computeADX(adxHighs, adxLows, adxCloses);
+      if (adxValue === null) {
+        console.log('    → filtered: ADX not ready');
+        return 'none';
+      }
+      if (adxValue < CONFIG.ADX_THRESHOLD) {
+        console.log(
+          `    → filtered by ADX: ${adxValue.toFixed(2)} < ${
+            CONFIG.ADX_THRESHOLD
+          }`
+        );
+        return 'none';
+      }
       console.log(
-        `    → filtered by ADX: ${adxValue.toFixed(2)} < ${
-          CONFIG.ADX_THRESHOLD
-        }`
+        `    → ADX passed: ${adxValue.toFixed(2)} ≥ ${CONFIG.ADX_THRESHOLD}`
       );
-      return 'none';
+    } else {
+      console.log(
+        '    → ADX filter skipped (period/threshold not set or invalid)'
+      );
     }
-    console.log(
-      `    → ADX passed: ${adxValue.toFixed(2)} ≥ ${CONFIG.ADX_THRESHOLD}`
-    );
 
     // All checks passed
     return signal;

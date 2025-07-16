@@ -3,10 +3,9 @@ import * as readline from 'node:readline';
 import { Readable } from 'stream';
 import JSONbig from 'json-bigint'; // Add this import
 // ── Configuration ─────────────────────────────────────────────────────────────
-// const PAGE_MS = 5 * 60 * 1000; // 5-minute paging window
 const WINDOW_SIZE = 5; // Number of bars in each trendline window
 const TOL_PCT = 0.001; // 0.1% dynamic tolerance for breakout
-const R_MULTIPLE = 2; // Reward:risk multiple for target
+const USE_EMA_FILTER = false; // Toggle to enable/disable 21-EMA filter
 
 // Databento parameters
 const DATASET = 'GLBX.MDP3';
@@ -31,6 +30,10 @@ interface Bar {
   cvd_running: number;
   cvd?: number;
   cvd_color?: string;
+  haOpen?: number;
+  haHigh?: number;
+  haLow?: number;
+  haClose?: number;
 }
 
 // ── Map aggressor side → signed delta ─────────────────────────────────────────
@@ -280,19 +283,19 @@ function fitTrendlinesWindow(y: number[]): {
   const supportLine = x.map((i) => supSlope * i + supInt);
   const resistLine = x.map((i) => resSlope * i + resInt);
   const last = y[N - 1];
-  const tol = Math.abs(resistLine[N - 1]) * TOL_PCT;
+  const tolRes = Math.abs(resistLine[N - 1]) * TOL_PCT;
+  const tolSup = Math.abs(supportLine[N - 1]) * TOL_PCT;
 
   const breakout =
-    last >= resistLine[N - 1] - tol
+    last >= resistLine[N - 1] - tolRes
       ? 'bullish'
-      : last <= supportLine[N - 1] + tol
+      : last <= supportLine[N - 1] + tolSup
       ? 'bearish'
       : 'none';
 
   return { supportLine, resistLine, supSlope, resSlope, breakout };
 }
 
-// ── Print times in PDT ────────────────────────────────────────────────────────
 // ── Format Eastern Time ───────────────────────────────────────────────────────
 function fmtEst(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', {
@@ -308,6 +311,10 @@ function fmtEst(iso: string): string {
 let lastEma21: number | null = null;
 let prevBar: Bar | null = null;
 
+// ── Heikin Ashi state ─────────────────────────────────────────────────────────
+let prevHaOpen: number | null = null;
+let prevHaClose: number | null = null;
+
 // ── Main execution ───────────────────────────────────────────────────────────
 async function main() {
   const key =
@@ -317,21 +324,19 @@ async function main() {
     process.exit(1);
   }
 
-  // TypeScript
-  const start = '2025-07-14T09:30:00-04:00'; //  9:30 AM EDT
-  const end = '2025-07-14T13:00:00-04:00'; //  1:00 PM  EDT
-
+  const start = '2025-05-07T18:00:00-04:00'; // 6:00 PM EDT
+  const end = '2025-05-07T21:00:00-04:00'; // 9:00 PM EDT
+  // const start = '2025-07-14T09:30:00-04:00'; // market open
+  // const end = '2025-07-14T12:00:00-04:00'; // noon
   const cvdWin: number[] = [];
   const pxWin: number[] = [];
   const volWin: number[] = [];
+  const barWin: Bar[] = [];
 
   let lastSig: 'bullish' | 'bearish' | null = null;
-  let pos: 'bullish' | 'bearish' | null = null;
-  let stopP = 0,
-    targP = 0;
 
   console.log(
-    '📊 Streaming 1-min MESM5 bars w/ true CVD + trendlines + entries'
+    '📊 Streaming 1-min MESM5 bars w/ true CVD + trendlines + signals (using Heikin Ashi candles)'
   );
   let i = 0;
 
@@ -346,61 +351,48 @@ async function main() {
   )) {
     i++;
 
-    // ── Compute 21-period EMA ────────────────────────────────────────────
-    const emaPeriod = 21;
-    const k = 2 / (emaPeriod + 1);
-    const prevEma = lastEma21 === null ? bar.close : lastEma21; // seed on first bar
-    const ema21 = (bar.close - prevEma) * k + prevEma;
-    lastEma21 = ema21;
+    // Compute Heikin Ashi values
+    const haClose = (bar.open + bar.high + bar.low + bar.close) / 4;
+    let haOpen: number;
+    if (prevHaOpen === null || prevHaClose === null) {
+      haOpen = (bar.open + bar.close) / 2; // Seed with standard for first bar
+    } else {
+      haOpen = (prevHaOpen + prevHaClose) / 2;
+    }
+    const haHigh = Math.max(bar.high, haOpen, haClose);
+    const haLow = Math.min(bar.low, haOpen, haClose);
+    bar.haOpen = haOpen;
+    bar.haHigh = haHigh;
+    bar.haLow = haLow;
+    bar.haClose = haClose;
+    prevHaOpen = haOpen;
+    prevHaClose = haClose;
 
-    const t = fmtEst(bar.timestamp);
-    console.log(
-      `#${i} ${t} | O:${bar.open.toFixed(2)} H:${bar.high.toFixed(2)} ` +
-        `L:${bar.low.toFixed(2)} C:${bar.close.toFixed(2)} Vol:${bar.volume} ` +
-        `CVD:${bar.cvd} Color:${bar.cvd_color} EMA21:${ema21.toFixed(2)}`
-    );
-
-    // Stop-loss / Take-profit
-    if (pos === 'bullish') {
-      if (bar.low <= stopP) {
-        console.log(
-          `  → 🚫 STOP-LOSS LONG @ ${t} | stop was ${stopP.toFixed(2)}`
-        );
-        pos = lastSig = null;
-        prevBar = bar;
-        continue;
-      }
-      if (bar.high >= targP) {
-        console.log(
-          `  → 🎯 TAKE-PROFIT LONG @ ${t} | target was ${targP.toFixed(2)}`
-        );
-        pos = lastSig = null;
-        prevBar = bar;
-        continue;
-      }
-    } else if (pos === 'bearish') {
-      if (bar.high >= stopP) {
-        console.log(
-          `  → 🚫 STOP-LOSS SHORT @ ${t} | stop was ${stopP.toFixed(2)}`
-        );
-        pos = lastSig = null;
-        prevBar = bar;
-        continue;
-      }
-      if (bar.low <= targP) {
-        console.log(
-          `  → 🎯 TAKE-PROFIT SHORT @ ${t} | target was ${targP.toFixed(2)}`
-        );
-        pos = lastSig = null;
-        prevBar = bar;
-        continue;
-      }
+    let ema21: number | undefined;
+    let prevEma: number | undefined;
+    if (USE_EMA_FILTER) {
+      const emaPeriod = 21;
+      const k = 2 / (emaPeriod + 1);
+      prevEma = lastEma21 === null ? haClose : lastEma21;
+      ema21 = (haClose - prevEma) * k + prevEma;
+      lastEma21 = ema21;
     }
 
-    // Build windows
+    const t = fmtEst(bar.timestamp);
+    let logStr =
+      `#${i} ${t} | HA-O:${haOpen.toFixed(2)} HA-H:${haHigh.toFixed(2)} ` +
+      `HA-L:${haLow.toFixed(2)} HA-C:${haClose.toFixed(2)} Vol:${bar.volume} ` +
+      `CVD:${bar.cvd} Color:${bar.cvd_color}`;
+    if (ema21 !== undefined) {
+      logStr += ` EMA21:${ema21.toFixed(2)}`;
+    }
+    console.log(logStr);
+
+    // Build windows (using HA close for pxWin)
     cvdWin.push(bar.cvd!);
-    pxWin.push(bar.close);
+    pxWin.push(haClose);
     volWin.push(bar.volume);
+    barWin.push(bar);
     if (cvdWin.length < WINDOW_SIZE) {
       prevBar = bar;
       continue;
@@ -408,13 +400,7 @@ async function main() {
     if (cvdWin.length > WINDOW_SIZE) cvdWin.shift();
     if (pxWin.length > WINDOW_SIZE) pxWin.shift();
     if (volWin.length > WINDOW_SIZE) volWin.shift();
-
-    // Skip entries if in position
-    if (pos) {
-      console.log(`    → in position (${pos}), waiting for exit`);
-      prevBar = bar;
-      continue;
-    }
+    if (barWin.length > WINDOW_SIZE) barWin.shift();
 
     // Fit trendlines & detect breakout
     const { supSlope, resSlope, breakout } = fitTrendlinesWindow(cvdWin);
@@ -436,14 +422,16 @@ async function main() {
       signal = 'none';
     }
 
-    // Price & volume confirmations
-    const prevPrices = pxWin.slice(0, -1);
-    if (signal === 'bullish' && bar.close <= Math.max(...prevPrices)) {
-      console.log('    → filtered: price did not exceed recent highs');
+    // Price & volume confirmations (using HA values)
+    const prevBars = barWin.slice(0, -1);
+    const recentHigh = Math.max(...prevBars.map((b) => b.haHigh!));
+    const recentLow = Math.min(...prevBars.map((b) => b.haLow!));
+    if (signal === 'bullish' && haClose <= recentHigh) {
+      console.log('    → filtered: HA close did not exceed recent HA highs');
       signal = 'none';
     }
-    if (signal === 'bearish' && bar.close >= Math.min(...prevPrices)) {
-      console.log('    → filtered: price did not drop below recent lows');
+    if (signal === 'bearish' && haClose >= recentLow) {
+      console.log('    → filtered: HA close did not drop below recent HA lows');
       signal = 'none';
     }
     const avgVol =
@@ -456,34 +444,28 @@ async function main() {
       signal = 'none';
     }
 
-    // ── Entry logic with 21-EMA gating ───────────────────────────────────
+    // ── Signal logic with optional 21-EMA gating ──────────────────────────
     if (signal !== 'none') {
-      const entry = bar.close;
-
       if (signal === 'bullish') {
-        if (!prevBar || prevBar.low < prevEma || bar.close <= prevBar.close) {
+        if (
+          USE_EMA_FILTER &&
+          (!prevBar || prevBar.haLow! < prevEma! || haClose <= prevBar.haClose!)
+        ) {
           console.log('    → filtered by EMA21 bullish filter');
         } else {
-          stopP = Math.min(...pxWin);
-          const R = entry - stopP;
-          targP = entry + R * R_MULTIPLE;
-          console.log(`    → ENTRY SIGNAL: BULLISH`);
-          console.log(`       Stop price:   ${stopP.toFixed(2)}`);
-          console.log(`       Target price: ${targP.toFixed(2)}\n`);
-          pos = signal;
+          console.log(`    → TRADE SIGNAL: BULLISH\n`);
           lastSig = signal;
         }
       } else {
-        if (!prevBar || prevBar.high > prevEma || bar.close >= prevBar.close) {
+        if (
+          USE_EMA_FILTER &&
+          (!prevBar ||
+            prevBar.haHigh! > prevEma! ||
+            haClose >= prevBar.haClose!)
+        ) {
           console.log('    → filtered by EMA21 bearish filter');
         } else {
-          stopP = Math.max(...pxWin);
-          const R = stopP - entry;
-          targP = entry - R * R_MULTIPLE;
-          console.log(`    → ENTRY SIGNAL: BEARISH`);
-          console.log(`       Stop price:   ${stopP.toFixed(2)}`);
-          console.log(`       Target price: ${targP.toFixed(2)}\n`);
-          pos = signal;
+          console.log(`    → TRADE SIGNAL: BEARISH\n`);
           lastSig = signal;
         }
       }

@@ -1,3 +1,4 @@
+// types/index.ts
 export interface Trade {
   px: number;
   size: number;
@@ -16,6 +17,24 @@ export interface StrategyTrade {
   winLoss: 'W' | 'L';
 }
 
+// New: Pre-calculated indicators from CSV
+export interface BarIndicators {
+  adx?: number;
+  plusDi?: number;
+  minusDi?: number;
+  ema_8?: number;
+  ema_9?: number;
+  ema_13?: number;
+  ema_21?: number;
+  ema_22?: number;
+  ema_50?: number;
+  ema_100?: number;
+  ema_200?: number;
+  cvd_ema_8?: number;
+  cvd_ema_21?: number;
+  cvd_ema_50?: number;
+}
+
 export interface Bar {
   timestamp: string;
   open: number;
@@ -27,6 +46,7 @@ export interface Bar {
   cvd_running: number;
   cvd?: number;
   cvd_color?: string;
+  indicators?: BarIndicators; // New: Pre-calculated indicators
 }
 
 export interface TrendlineResult {
@@ -58,4 +78,30 @@ export interface TradingState {
   adxHighs: number[];
   adxLows: number[];
   adxCloses: number[];
+}
+
+// Form configuration with candle type
+export interface FormConfig {
+  timeFrame: {
+    startDate: string;
+    startTime: string;
+    endDate: string;
+    endTime: string;
+  };
+
+  // BAR SETTINGS
+  barType: 'time' | 'tick';
+  barSize: number;
+  candleType: 'traditional' | 'heikinashi'; // NEW: Candle type selection
+  cvdLookBackBars?: number;
+
+  // INDICATORS
+  emaMovingAverage?: number;
+  adxThreshold?: number;
+  adxPeriod?: number; // NEW: ADX period configuration
+
+  // RISK
+  contractSize: number;
+  stopLoss: number;
+  takeProfit: number;
 }

@@ -16,42 +16,38 @@ export interface FormConfig {
   timeFrame: TimeFrame;
 
   // BAR SETTINGS
-  barType: 'time' | 'tick';
-  barSize: number;
-  candleType: 'traditional' | 'heikinashi';
-  cvdLookBackBars?: number;
+  barType: 'time' | 'tick'; // 'time' = minute bars; 'tick' = tick bars
+  barSize: number; // minutes if 'time', ticks if 'tick'
+  cvdLookBackBars?: number; // count of bars (of chosen type) to look back
 
   // INDICATORS
   emaMovingAverage?: number;
   adxThreshold?: number;
-  adxPeriod?: number;
 
   // RISK
   contractSize: number;
   stopLoss: number;
   takeProfit: number;
+
+  // OPTIONAL EXTRAS
+  rMultiple?: number;
+  maxDailyLoss?: number;
+  maxPositions?: number;
+  leverage?: number;
 }
 
-// Set defaults
+// only the bare minimum defaults for flow control
 const DEFAULTS = {
   PAGE_MS: 5 * 60 * 1000,
-  BAR_TYPE: 'time' as 'time' | 'tick',
-  TICK_SIZE: 100,
+  BAR_TYPE: 'tick' as 'time' | 'tick',
   WINDOW_SIZE: 5,
   TOL_PCT: 0.001,
   R_MULTIPLE: 2,
-  EMA_PERIOD: 0,
-  ADX_PERIOD: 14,
-  ADX_THRESHOLD: 0,
-  CONTRACT_SIZE: 1,
-  STOP_LOSS: 4,
-  TAKE_PROFIT: 3,
 };
-
 let dynamicConfig: Record<string, any> = { ...DEFAULTS };
 
 export function updateConfig(formData: FormConfig) {
-  // 1) Bar type and size
+  // 1) minute vs tick bars
   if (formData.barType === 'time') {
     dynamicConfig.BAR_TYPE = 'time';
     dynamicConfig.PAGE_MS = formData.barSize * 60_000;
@@ -61,43 +57,35 @@ export function updateConfig(formData: FormConfig) {
   }
 
   // 2) CVD lookback
-  if (formData.cvdLookBackBars != null && formData.cvdLookBackBars > 0) {
+  if (formData.cvdLookBackBars != null) {
     dynamicConfig.WINDOW_SIZE = formData.cvdLookBackBars;
   }
 
-  // 3) Indicators - only set if provided and positive
-  if (formData.emaMovingAverage != null && formData.emaMovingAverage > 0) {
+  // 3) other indicators
+  if (formData.emaMovingAverage != null) {
     dynamicConfig.EMA_PERIOD = formData.emaMovingAverage;
-  } else {
-    dynamicConfig.EMA_PERIOD = 0;
   }
-
-  if (formData.adxPeriod != null && formData.adxPeriod > 0) {
-    dynamicConfig.ADX_PERIOD = formData.adxPeriod;
-  } else {
-    dynamicConfig.ADX_PERIOD = 14; // Default ADX period
-  }
-
-  if (formData.adxThreshold != null && formData.adxThreshold > 0) {
+  if (formData.adxThreshold != null) {
     dynamicConfig.ADX_THRESHOLD = formData.adxThreshold;
-  } else {
-    dynamicConfig.ADX_THRESHOLD = 0;
   }
 
-  // 4) Risk settings
+  // 4) risk settings
   dynamicConfig.CONTRACT_SIZE = formData.contractSize;
   dynamicConfig.STOP_LOSS = formData.stopLoss;
   dynamicConfig.TAKE_PROFIT = formData.takeProfit;
+
+  if (formData.rMultiple != null) dynamicConfig.R_MULTIPLE = formData.rMultiple;
+  if (formData.maxDailyLoss != null)
+    dynamicConfig.MAX_DAILY_LOSS = formData.maxDailyLoss;
+  if (formData.maxPositions != null)
+    dynamicConfig.MAX_POSITIONS = formData.maxPositions;
+  if (formData.leverage != null) dynamicConfig.LEVERAGE = formData.leverage;
 }
 
 export function buildDateStrings(tf: TimeFrame) {
-  // Convert to ISO format for CSV timestamp matching
-  const startDateTime = `${tf.startDate}T${tf.startTime}:00`;
-  const endDateTime = `${tf.endDate}T${tf.endTime}:00`;
-
   return {
-    start: startDateTime,
-    end: endDateTime,
+    start: `${tf.startDate}T${tf.startTime}:00-04:00`,
+    end: `${tf.endDate}T${tf.endTime}:00-04:00`,
   };
 }
 
@@ -124,9 +112,6 @@ export const CONFIG = {
   get EMA_PERIOD() {
     return dynamicConfig.EMA_PERIOD;
   },
-  get ADX_PERIOD() {
-    return dynamicConfig.ADX_PERIOD;
-  },
   get ADX_THRESHOLD() {
     return dynamicConfig.ADX_THRESHOLD;
   },
@@ -139,6 +124,15 @@ export const CONFIG = {
   },
   get TAKE_PROFIT() {
     return dynamicConfig.TAKE_PROFIT;
+  },
+  get MAX_DAILY_LOSS() {
+    return dynamicConfig.MAX_DAILY_LOSS;
+  },
+  get MAX_POSITIONS() {
+    return dynamicConfig.MAX_POSITIONS;
+  },
+  get LEVERAGE() {
+    return dynamicConfig.LEVERAGE;
   },
 
   DATABENTO: {
