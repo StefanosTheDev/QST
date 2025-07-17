@@ -7,11 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     // This is actually good because we have optional values.
     const formData: FormProp = await request.json();
-    // await runBacktest(formData);
     const algoSettings = buildParams(formData);
-
     const results = await runCSVBacktest(algoSettings);
-    return results;
   } catch (error) {
     console.error('Backtest error:', error);
     return NextResponse.json(

@@ -1,22 +1,32 @@
 import { FormProp } from '../types/types';
+import { ApiParams } from './algo/src/types';
 
-// NEED TO REVIEW. THis is way to complicated.
-// 1) Define the one‐liner return type: drop the 4 raw fields, add start/end
-type ApiParams = Omit<
-  FormProp,
-  'startDate' | 'startTime' | 'endDate' | 'endTime'
-> & { start: string; end: string };
+/**
+ * Extended form parameters including ISO start/end strings.
+ */
+export interface FormParams extends FormProp {
+  start: string;
+  end: string;
+}
 
-// 2) Use it and cast at the end
-export function buildParams(input: FormProp): ApiParams {
+/**
+ * Build form parameters by adding ISO date-time strings 'start' and 'end'.
+ * Returns the original form values plus `start`/`end` for backtesting.
+ */
+export function buildParams(input: FormProp): FormParams {
   const { startDate, startTime, endDate, endTime, ...rest } = input;
   const start = `${startDate}T${startTime}:00-04:00`;
   const end = `${endDate}T${endTime}:00-04:00`;
 
-  const cleanParams = Object.fromEntries(
-    Object.entries(rest).filter(([, v]) => v !== 0)
-  );
+  // Filter out any numeric fields with zero value, keep all others
+  const filtered = Object.fromEntries(
+    Object.entries(rest).filter(([_, v]) => v !== 0)
+  ) as Omit<FormProp, 'startDate' | 'startTime' | 'endDate' | 'endTime'>;
 
-  const merged = { start, end, ...cleanParams };
-  return merged as ApiParams;
+  // Return all remaining form fields plus the ISO strings
+  return {
+    ...filtered,
+    start,
+    end,
+  } as FormParams;
 }

@@ -1,12 +1,6 @@
-// types/index.ts
-import { FormProp } from '@/app/types/types';
-export interface Trade {
-  px: number;
-  size: number;
-  side: 'A' | 'B' | 'N';
-  ts_ms: number;
-}
-
+/**
+ * Completed backtest trade record
+ */
 export interface StrategyTrade {
   type: 'bullish' | 'bearish';
   entryPrice: number;
@@ -18,25 +12,10 @@ export interface StrategyTrade {
   winLoss: 'W' | 'L';
 }
 
-// New: Pre-calculated indicators from CSV
-export interface BarIndicators {
-  adx?: number;
-  plusDi?: number;
-  minusDi?: number;
-  ema_8?: number;
-  ema_9?: number;
-  ema_13?: number;
-  ema_21?: number;
-  ema_22?: number;
-  ema_50?: number;
-  ema_100?: number;
-  ema_200?: number;
-  cvd_ema_8?: number;
-  cvd_ema_21?: number;
-  cvd_ema_50?: number;
-}
-
-export interface Bar {
+/**
+ * Single bar with all precomputed indicators from the CSV
+ */
+export interface CsvBar {
   timestamp: string;
   open: number;
   high: number;
@@ -44,44 +23,48 @@ export interface Bar {
   close: number;
   volume: number;
   delta: number;
-  cvd_running: number;
-  cvd?: number;
-  cvd_color?: string;
-  indicators?: BarIndicators; // New: Pre-calculated indicators
+  cvd_open: number;
+  cvd_high: number;
+  cvd_low: number;
+  cvd_close: number;
+  ema_8: number;
+  ema_9: number;
+  ema_13: number;
+  ema_21: number;
+  ema_22: number;
+  ema_50: number;
+  ema_100: number;
+  ema_200: number;
+  cvd_ema_8: number;
+  cvd_ema_9: number;
+  cvd_ema_13: number;
+  cvd_ema_21: number;
+  cvd_ema_22: number;
+  cvd_ema_50: number;
+  cvd_ema_100: number;
+  cvd_ema_200: number;
 }
 
-export interface TrendlineResult {
-  supportLine: number[];
-  resistLine: number[];
-  supSlope: number;
-  resSlope: number;
-  breakout: 'bullish' | 'bearish' | 'none';
-}
+/**
+ * Parameters passed from the frontend to configure the CSV backtest
+ */
+export interface ApiParams {
+  start: string;
+  end: string;
 
-export interface Position {
-  type: 'bullish' | 'bearish';
-  entryPrice: number;
-  stopPrice: number;
-  targetPrice: number;
-  timestamp: number;
-}
+  // Simplified bar settings
+  barType: 'time' | 'tick';
+  barSize: number;
+  candleType: 'traditional' | 'heikinashi';
+  cvdLookBackBars?: number;
 
-export interface TradingState {
-  lastSignal: 'bullish' | 'bearish' | null;
-  position: Position | null;
-  lastEma21: number | null;
-  prevBar: Bar | null;
-  cvdWindow: number[];
-  priceWindow: number[];
-  highWindow: number[];
-  lowWindow: number[];
-  volumeWindow: number[];
-  adxHighs: number[];
-  adxLows: number[];
-  adxCloses: number[];
+  // Indicator Settings
+  emaMovingAverage?: number;
+  adxThreshold?: number;
+  adxPeriod?: number;
+
+  // Risk Management
+  contractSize: number;
+  stopLoss: number;
+  takeProfit: number;
 }
-// drop the four raw fields, add start/end
-export type ApiParams = Omit<
-  FormProp,
-  'startDate' | 'startTime' | 'endDate' | 'endTime'
-> & { start: string; end: string };

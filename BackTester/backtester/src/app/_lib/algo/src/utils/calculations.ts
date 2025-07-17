@@ -31,7 +31,7 @@ export function formatEasternTime(iso: string): string {
   });
 }
 
-export function selectCSV(barType: string, candleType: String) {
+export function selectCSV(barType: string, candleType: string): string {
   const csvOptions = [
     {
       id: 1,
@@ -49,17 +49,25 @@ export function selectCSV(barType: string, candleType: String) {
       id: 3,
       barType: 'time',
       candleType: 'heikinashi',
-      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+      csv: 'csv_database/mesu5_heikin_ashi_1min_with_emas.csv',
     },
     {
       id: 4,
       barType: 'tick',
       candleType: 'heikinashi',
-      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+      csv: 'csv_database/mesu5_heikin_ashi_1min_with_emas.csv',
     },
   ];
-  const findCSV = csvOptions.find(
-    (item) => barType === item.barType && candleType === item.candleType
+
+  const match = csvOptions.find(
+    (opt) => opt.barType === barType && opt.candleType === candleType
   );
-  return findCSV;
+
+  if (!match) {
+    throw new Error(
+      `No CSV found for barType="${barType}" and candleType="${candleType}"`
+    );
+  }
+
+  return match.csv;
 }
