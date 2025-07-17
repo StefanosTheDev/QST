@@ -1,17 +1,26 @@
-// src/lib/formatTimestamp.ts
-export function formatTimestamp(
-  date: string, // e.g. "2025-06-10"
-  time: string // e.g. "09:30"
-): string {
-  // build a Date from local‐time
-  const dt = new Date(`${date}T${time}`);
-  // hours and minutes of offset *ahead* of UTC
-  const offsetMin = -dt.getTimezoneOffset();
-  const sign = offsetMin >= 0 ? '+' : '-';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const abs = Math.abs(offsetMin);
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
+import { FormProp } from '../types/types';
 
-  return `${date}T${time}:00${sign}${pad(h)}:${pad(m)}`;
+export function calculateAlgoConfig(formData: FormProp) {
+  // 1) Destructure the four date/time fields, rest is everything else
+  const { startDate, startTime, endDate, endTime, ...rest } = formData;
+
+  // 2) Build your ISO-ish strings (with your -04:00 offset)
+  const start = `${startDate}T${startTime}:00-04:00`;
+  const end = `${endDate}T${endTime}:00-04:00`;
+
+  // 3) Merge them into one plain object
+  const merged = { start, end, ...rest };
+
+  // 4) Reduce to drop any null/undefined values
+  const cfg = Object.entries(merged).reduce<Record<string, any>>(
+    (acc, [key, val]) => {
+      if (val != null) {
+        acc[key] = val;
+      }
+      return acc;
+    },
+    {}
+  );
+
+  return cfg;
 }

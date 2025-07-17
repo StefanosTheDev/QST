@@ -1,6 +1,6 @@
 import { Bar, Position, StrategyTrade } from '../types';
 import { formatEasternTime } from '../utils/formatting';
-import { CONFIG } from '../config/constants';
+import { CONFIG } from '../config/config';
 
 export class TradeStatistics {
   private trades: StrategyTrade[] = [];

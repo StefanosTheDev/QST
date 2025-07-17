@@ -1,5 +1,5 @@
 // indicators/ema.ts
-import { CONFIG } from '../config/constants';
+import { CONFIG } from '../config/config';
 
 export class EMACalculator {
   private lastEma: number | null = null;

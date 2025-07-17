@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as readline from 'node:readline';
 import { Readable } from 'stream';
 import { Trade, Bar } from '../types';
-import { CONFIG } from '../config/constants';
+import { CONFIG } from '../config/config';
 import { deltaFromSide } from '../utils/calculations';
 import { getMinuteTimestamp } from '../utils/formatting';
 

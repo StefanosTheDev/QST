@@ -1,32 +1,10 @@
 'use client';
 import React, { useState, FormEvent } from 'react';
-
-export interface FormProp {
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  timeframe: string;
-
-  // Simplified bar settings
-  barType: 'time' | 'tick';
-  barSize: number;
-  candleType: 'traditional' | 'heikinashi';
-  cvdLookBackBars?: number;
-
-  // Indicator Settings
-  emaMovingAverage?: number;
-  adxThreshold?: number;
-  adxPeriod?: number;
-
-  // Risk Management
-  contractSize: number;
-  stopLoss: number;
-  takeProfit: number;
-}
-
+import { FormProp } from '../types/types';
+import { calculateAlgoConfig } from '../_lib/utils';
 export default function AlgoForm() {
   const today = new Date().toISOString().slice(0, 10);
+
   const [values, setValues] = useState<FormProp>({
     startDate: today,
     startTime: '09:30',
@@ -35,21 +13,20 @@ export default function AlgoForm() {
     timeframe: '1min',
 
     barType: 'time',
-    barSize: 1,
+    barSize: 0,
     candleType: 'traditional',
-    cvdLookBackBars: 5,
+    cvdLookBackBars: 0,
 
-    emaMovingAverage: 21,
-    adxThreshold: 25,
-    adxPeriod: 14,
+    emaMovingAverage: 0,
+    adxThreshold: 0,
+    adxPeriod: 0,
 
-    contractSize: 1,
-    stopLoss: 4,
-    takeProfit: 3,
+    contractSize: 0,
+    stopLoss: 0,
+    takeProfit: 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -64,55 +41,35 @@ export default function AlgoForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    console.log('▶ handleSubmit start');
+    debugger; // ← will pause execution if DevTools are open
     setLoading(true);
     setError(null);
-    setResult(null);
 
     try {
-      const {
-        startDate,
-        startTime,
-        endDate,
-        endTime,
-        barType,
-        barSize,
-        candleType,
-        cvdLookBackBars,
-        emaMovingAverage,
-        adxThreshold,
-        adxPeriod,
-        contractSize,
-        stopLoss,
-        takeProfit,
-      } = values;
-
-      const payload = {
-        timeFrame: { startDate, startTime, endDate, endTime },
-        barType,
-        barSize,
-        candleType,
-        cvdLookBackBars,
-        emaMovingAverage,
-        adxThreshold,
-        adxPeriod,
-        contractSize,
-        stopLoss,
-        takeProfit,
-      };
+      const payload = calculateAlgoConfig(values);
+      console.log('📤 Payload:', payload);
 
       const res = await fetch('/api/backtest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      console.log('📥 Response status:', res.status);
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error ${res.status}: ${text}`);
+      }
+
       const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message);
+      console.log('✅ Response data:', data);
+    } catch (err: unknown) {
+      console.error('❌ Caught error in handleSubmit:', err);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+      console.log('🔚 handleSubmit end');
     }
   };
 
@@ -122,7 +79,6 @@ export default function AlgoForm() {
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
           CVD Trendline Backtester
         </h1>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Form Panel */}
           <div className="bg-white p-6 rounded-2xl shadow-lg">
@@ -346,78 +302,8 @@ export default function AlgoForm() {
               </button>
             </form>
           </div>
-
-          {/* Results Panel */}
-          <div className="bg-white p-6 rounded-2xl shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
-              Results
-            </h2>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-700">Error: {error}</p>
-              </div>
-            )}
-
-            {result && result.success && (
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-gray-700 mb-2">Statistics</h3>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-600 font-mono">
-                    {result.statistics}
-                  </pre>
-                </div>
-
-                <details className="bg-gray-50 p-4 rounded-lg">
-                  <summary className="cursor-pointer font-medium text-gray-700">
-                    View Detailed Logs ({result.logs?.length || 0} entries)
-                  </summary>
-                  <div className="mt-3 max-h-96 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-xs text-gray-600 font-mono">
-                      {result.logs?.join('\n')}
-                    </pre>
-                  </div>
-                </details>
-              </div>
-            )}
-
-            {!result && !error && (
-              <div className="text-gray-500 text-center py-8">
-                <p>
-                  Configure your strategy and click "Run Backtest" to see
-                  results.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
-
         {/* Info Panel */}
-        <div className="mt-6 bg-blue-50 p-6 rounded-2xl">
-          <h3 className="text-lg font-semibold mb-3 text-blue-900">
-            Strategy Overview
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
-            <div>
-              <h4 className="font-medium mb-1">CVD Trendline Strategy</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Fits support/resistance lines on CVD window</li>
-                <li>Enters on trendline breakouts</li>
-                <li>Uses volume and price confirmation</li>
-                <li>Optional EMA and ADX filters</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-1">Data Source</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Pre-calculated 1-minute bars from CSV</li>
-                <li>Traditional or Heikin Ashi candles</li>
-                <li>Includes all technical indicators</li>
-                <li>No live data streaming required</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync';
 import { Bar } from '../types';
-import { CONFIG } from '../config/constants';
+import { CONFIG } from './config';
 
 interface CSVRow {
   timestamp: string;

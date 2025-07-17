@@ -1,20 +1,22 @@
 export interface FormProp {
-  // …keep these
   startDate: string;
   startTime: string;
   endDate: string;
   endTime: string;
   timeframe: string;
 
-  // replace the old tickType/barType numeric pair with:
+  // Simplified bar settings
   barType: 'time' | 'tick';
   barSize: number;
-
-  // leave this as-is
+  candleType: 'traditional' | 'heikinashi';
   cvdLookBackBars?: number;
+
+  // Indicator Settings
   emaMovingAverage?: number;
   adxThreshold?: number;
+  adxPeriod?: number;
 
+  // Risk Management
   contractSize: number;
   stopLoss: number;
   takeProfit: number;

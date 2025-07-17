@@ -4,7 +4,9 @@ import {
   updateConfig,
   buildDateStrings,
   FormConfig,
-} from './config/constants';
+  calculateAlgoConfig,
+  buildAlgoConfig,
+} from './config/config';
 import { streamBars } from './data/databento';
 import { getCvdColor } from './indicators/cvd';
 import { EMACalculator } from './indicators/ema';
@@ -13,6 +15,7 @@ import { SignalGenerator } from './strategy/signals';
 import { PositionManager } from './strategy/positions';
 import { formatEasternTime } from './utils/formatting';
 import { TradingState, Bar } from './types';
+import { FormProp } from '@/app/types/types';
 
 class TradingSystem {
   private state: TradingState;
@@ -165,9 +168,11 @@ class TradingSystem {
 }
 
 // Step 1: Make sure FormData gets passed right.
-export async function runBacktest(formData: FormConfig): Promise<void> {
-  updateConfig(formData); // push the full config somewhere
-  const { start, end } = buildDateStrings(formData.timeFrame);
+export async function runBacktest(formData: FormProp): Promise<void> {
+  // Pass Start / End into this Run.
+
+  const data = formData;
+  console.log(data);
   const ts = new TradingSystem();
   await ts.run(start, end);
 }

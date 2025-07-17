@@ -1,10 +1,5 @@
 // src/strategy/csvMain.ts
-import {
-  CONFIG,
-  updateConfig,
-  buildDateStrings,
-  FormConfig,
-} from '../config/constants';
+import { CONFIG, updateConfig, buildDateStrings } from '../config/config';
 import { CSVDataReader } from '../config/readCSV';
 import { fitTrendlinesWindow } from '../indicators/trendlines';
 import { SignalGenerator } from './signals';
@@ -12,6 +7,7 @@ import { PositionManager } from './positions';
 import { formatEasternTime } from '../utils/formatting';
 import { TradingState, Bar } from '../types';
 import { TrendlineResult } from '../types';
+import { FormProp } from '@/app/types/types';
 export class CSVTradingSystem {
   private state: TradingState;
   private signalGenerator = new SignalGenerator();
@@ -277,7 +273,7 @@ export class CSVTradingSystem {
 }
 
 // Updated runBacktest function to use CSV
-export async function runCSVBacktest(formData: FormConfig): Promise<void> {
+export async function runCSVBacktest(formData: FormProp): Promise<void> {
   updateConfig(formData);
   const { start, end } = buildDateStrings(formData.timeFrame);
 

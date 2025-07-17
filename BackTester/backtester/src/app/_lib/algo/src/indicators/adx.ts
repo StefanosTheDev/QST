@@ -1,6 +1,6 @@
 // src/indicators/adx.ts
 import { ADX as TI_ADX } from 'technicalindicators';
-import { CONFIG } from '../config/constants';
+import { CONFIG } from '../config/config';
 
 export function computeADX(
   highs: number[],
