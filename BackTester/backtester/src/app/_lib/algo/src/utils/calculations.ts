@@ -37,8 +37,9 @@ export function selectCSV(barType: string, candleType: string): string {
       id: 1,
       barType: 'time',
       candleType: 'traditional',
-      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+      csv: 'mesu5_traditional_1min_with_emas.csv',
     },
+
     {
       id: 2,
       barType: 'tick',

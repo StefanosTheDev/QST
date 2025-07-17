@@ -1,22 +1,29 @@
-// src/utils/readCsv.ts
-
 import fs from 'fs';
+import path from 'path';
 import { parse } from 'csv-parse/sync';
-import { CsvBar } from '../types/index';
 
-/**
- * Load and parse a CSV file of precomputed bars into CsvBar objects
- * @param pathToFile Relative or absolute path to the CSV file
- */
-export function loadCsvBars(pathToFile: string): CsvBar[] {
-  const rawCsv = fs.readFileSync(pathToFile, 'utf8');
-  const records = parse(rawCsv, {
+import { CsvBar } from '../types';
+export function loadCsvBars(filename: string): CsvBar[] {
+  const csvDir = path.join(
+    process.cwd(),
+    'src',
+    'app',
+    '_lib',
+    'algo',
+    'src',
+    'csv_database'
+  );
+  const fullPath = path.join(csvDir, filename);
+  console.log('Loading CSV from', fullPath);
+  const raw = fs.readFileSync(fullPath, 'utf8');
+  // 2) Parse into an array of records
+  const records = parse(raw, {
     columns: true,
     skip_empty_lines: true,
-  });
+  }) as Record<string, string>[];
 
-  // Map parsed records (string values) into typed CsvBar
-  return (records as any[]).map((r) => ({
+  // 3) Coerce into your CsvBar type
+  return records.map((r) => ({
     timestamp: r.timestamp,
     open: Number(r.open),
     high: Number(r.high),

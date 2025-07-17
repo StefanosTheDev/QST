@@ -1,4 +1,4 @@
-import { Bar, Position, StrategyTrade } from '../types';
+import { Bar, , StrategyTrade } from '../types';
 
 import { formatEasternTime } from '../utils';
 export class TradeStatistics {
