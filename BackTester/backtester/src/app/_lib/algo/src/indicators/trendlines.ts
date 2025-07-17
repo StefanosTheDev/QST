@@ -1,6 +1,5 @@
 // indicators/trendlines.ts
 import { TrendlineResult } from '../types';
-import { CONFIG } from '../config/config';
 import { calculateLinearRegression } from '../utils/calculations';
 
 function checkTrendLine(

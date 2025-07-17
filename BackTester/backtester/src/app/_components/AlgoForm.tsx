@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, FormEvent } from 'react';
 import { FormProp } from '../types/types';
-import { calculateAlgoConfig } from '../_lib/utils';
 export default function AlgoForm() {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -47,9 +46,7 @@ export default function AlgoForm() {
     setError(null);
 
     try {
-      const payload = calculateAlgoConfig(values);
-      console.log('📤 Payload:', payload);
-
+      const payload = values;
       const res = await fetch('/api/backtest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,4 +1,5 @@
 // types/index.ts
+import { FormProp } from '@/app/types/types';
 export interface Trade {
   px: number;
   size: number;
@@ -79,29 +80,8 @@ export interface TradingState {
   adxLows: number[];
   adxCloses: number[];
 }
-
-// Form configuration with candle type
-export interface FormConfig {
-  timeFrame: {
-    startDate: string;
-    startTime: string;
-    endDate: string;
-    endTime: string;
-  };
-
-  // BAR SETTINGS
-  barType: 'time' | 'tick';
-  barSize: number;
-  candleType: 'traditional' | 'heikinashi'; // NEW: Candle type selection
-  cvdLookBackBars?: number;
-
-  // INDICATORS
-  emaMovingAverage?: number;
-  adxThreshold?: number;
-  adxPeriod?: number; // NEW: ADX period configuration
-
-  // RISK
-  contractSize: number;
-  stopLoss: number;
-  takeProfit: number;
-}
+// drop the four raw fields, add start/end
+export type ApiParams = Omit<
+  FormProp,
+  'startDate' | 'startTime' | 'endDate' | 'endTime'
+> & { start: string; end: string };

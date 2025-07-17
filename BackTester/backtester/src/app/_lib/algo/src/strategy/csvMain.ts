@@ -1,13 +1,12 @@
 // src/strategy/csvMain.ts
-import { CONFIG, updateConfig, buildDateStrings } from '../config/config';
 import { CSVDataReader } from '../config/readCSV';
 import { fitTrendlinesWindow } from '../indicators/trendlines';
 import { SignalGenerator } from './signals';
 import { PositionManager } from './positions';
-import { formatEasternTime } from '../utils/formatting';
-import { TradingState, Bar } from '../types';
+import { formatEasternTime } from '../utils';
+import { TradingState, Bar, ApiParams } from '../types';
 import { TrendlineResult } from '../types';
-import { FormProp } from '@/app/types/types';
+import { selectCSV } from '../utils';
 export class CSVTradingSystem {
   private state: TradingState;
   private signalGenerator = new SignalGenerator();
@@ -273,13 +272,8 @@ export class CSVTradingSystem {
 }
 
 // Updated runBacktest function to use CSV
-export async function runCSVBacktest(formData: FormProp): Promise<void> {
-  updateConfig(formData);
-  const { start, end } = buildDateStrings(formData.timeFrame);
-
-  // Use candle type from form config
-  const useHeikinAshi = formData.candleType === 'heikinashi';
-
+export async function runCSVBacktest(formData: ApiParams): Promise<void> {
+  const csv = selectCSV(formData.barType, formData.candleType);
   const ts = new CSVTradingSystem(useHeikinAshi);
-  await ts.run(start, end);
+  // console.log(`From Library: ${formData}`);
 }

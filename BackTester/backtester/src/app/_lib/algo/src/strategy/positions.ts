@@ -1,7 +1,6 @@
 import { Bar, Position, StrategyTrade } from '../types';
-import { formatEasternTime } from '../utils/formatting';
-import { CONFIG } from '../config/config';
 
+import { formatEasternTime } from '../utils';
 export class TradeStatistics {
   private trades: StrategyTrade[] = [];
   private contractMultiplier: number = 50; // $50 per point (e.g., E-mini S&P 500); adjust via CONFIG if available

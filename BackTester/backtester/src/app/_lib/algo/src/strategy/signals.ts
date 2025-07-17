@@ -1,7 +1,5 @@
 // src/strategy/signals.ts
 import { Bar, TrendlineResult } from '../types';
-import { computeADX } from '../indicators/adx';
-import { CONFIG } from '../config/config';
 
 export interface SignalFilters {
   lastSignal: 'bullish' | 'bearish' | null;

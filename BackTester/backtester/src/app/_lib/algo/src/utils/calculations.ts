@@ -21,3 +21,45 @@ export function calculateLinearRegression(y: number[]): {
 
   return { slope, residuals };
 }
+export function formatEasternTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour12: true,
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+export function selectCSV(barType: string, candleType: String) {
+  const csvOptions = [
+    {
+      id: 1,
+      barType: 'time',
+      candleType: 'traditional',
+      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+    },
+    {
+      id: 2,
+      barType: 'tick',
+      candleType: 'traditional',
+      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+    },
+    {
+      id: 3,
+      barType: 'time',
+      candleType: 'heikinashi',
+      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+    },
+    {
+      id: 4,
+      barType: 'tick',
+      candleType: 'heikinashi',
+      csv: 'csv_database/mesu5_traditional_1min_with_emas.csv',
+    },
+  ];
+  const findCSV = csvOptions.find(
+    (item) => barType === item.barType && candleType === item.candleType
+  );
+  return findCSV;
+}
