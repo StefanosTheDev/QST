@@ -13,3 +13,20 @@ We use this when we say hey config. might ahve a subset of the keys in formPRop
 // Step 4: Make sure that when we choose those filters it ligns up with the right option.
 
 // Step 5: Once we have that built out then we can start iteration process. / How this will work.
+
+
+Scenario: I fi want to pass the data from like a Form To a  nother component. there a few options.
+- Redirect and store result in a Context or Global State. 
+
+Scenioar 2: 
+
+
+
+Okay here can be my approach. 
+
+Once I get the data passed in. I can upload that into a CSV... Then I can create an instance of this... 
+
+
+
+
+2 Design Approaches I need to finess. 

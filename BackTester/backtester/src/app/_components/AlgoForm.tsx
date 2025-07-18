@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, FormEvent } from 'react';
 import { FormProp } from '../types/types';
+import Results from './Results';
 export default function AlgoForm() {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -60,7 +61,7 @@ export default function AlgoForm() {
       }
 
       const data = await res.json();
-      console.log('✅ Response data:', data);
+      <Results data={data} />;
     } catch (err: unknown) {
       console.error('❌ Caught error in handleSubmit:', err);
       setError(err instanceof Error ? err.message : String(err));

@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const algoSettings = buildParams(formData);
     const csv = selectCSV(formData.barType, formData.candleType); // Select CSV.
     const results = await runCSVBacktest(csv, algoSettings);
-    return results;
+    return NextResponse.json({ success: results });
   } catch (error) {
     console.error('Backtest error:', error);
     return NextResponse.json(
